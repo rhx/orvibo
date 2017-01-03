@@ -2,8 +2,15 @@ import Foundation
 import Dispatch
 import COrvibo
 
+#if os(Linux)
+    import Glibc
+#else
+    import Darwin
+#endif
+
 guard CommandLine.arguments.count == 2 else {
-    fatalError("Usage: \(CommandLine.arguments.first!) <mac>")
+    print("Usage: \(CommandLine.arguments.first!) <mac>")
+    exit(EXIT_FAILURE)
 }
 
 let mac = CommandLine.arguments.last!
