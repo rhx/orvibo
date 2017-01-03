@@ -6,13 +6,13 @@ A simple command line tool written in [Swift](https://swift.org/) for interactin
 This package uses the orvibo plug library at https://github.com/OllieDay/orvibo.
 You need to download, build, and install this library first:
 
-```
-$ git clone https://github.com/OllieDay/orvibo.git
-$ cd orvibo
-$ mkdir build && cd build
-$ cmake ..
-$ make install clean
-```
+	git clone https://github.com/OllieDay/orvibo.git liborvibo
+	mkdir build.liborvibo
+	cd build.liborvibo
+	cmake ../liborvibo
+	make
+	sudo make install
+
 
 ## Compiling
 
