@@ -2,7 +2,11 @@ import Foundation
 import Dispatch
 import COrvibo
 
-let mac = "ac:cf:23:24:1c:82"
+guard CommandLine.arguments.count == 2 else {
+    fatalError("Usage: \(CommandLine.arguments.first!) <mac>")
+}
+
+let mac = CommandLine.arguments.last!
 guard let socket = Orvibo(mac) else {
     fatalError("Cannot create socket for \(mac)")
 }
