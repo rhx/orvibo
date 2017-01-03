@@ -14,7 +14,7 @@ You need to download, build, and install this library first:
 	sudo make install
 
 
-## Compiling
+## Compiling and Installing
 
 This library uses the [Swift Package Manager](https://swift.org/package-manager/).  To build and install use:
 
