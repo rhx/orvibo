@@ -46,6 +46,7 @@ public class Orvibo {
     /// Current state of the socket
     public var state: orvibo_state = ORVIBO_STATE_UNKNOWN
 
+    /// Last known on/off status of the socket
     public var on: Bool {
         get { return state == ORVIBO_STATE_ON }
         set {
@@ -57,6 +58,15 @@ public class Orvibo {
             }
         }
     }
+    /// Get the status of the socket
+    ///
+    /// - Returns: `true` iff on
+    @discardableResult
+    public func getState() -> Bool {
+        state = orvibo_socket_state(ptr)
+        return on
+    }
+
     /// Callback on socket discovery
     public func onDiscovery(_ callback: @escaping (Orvibo) -> Void = { _ in }) {
         notifyDiscovery = callback
@@ -107,7 +117,7 @@ public class Orvibo {
                 }
             case ORVIBO_EVENT_SUBSCRIBE:
                 socket.stage = .subscribed
-                socket.state = orvibo_socket_state(ptr)
+                socket.getState()
                 socket.notifySubscription(socket, socket.on)
             case ORVIBO_EVENT_UNSUBSCRIBE:
                 socket.stage = .discovered

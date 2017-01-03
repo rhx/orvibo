@@ -18,10 +18,14 @@ guard let socket = Orvibo(mac) else {
     fatalError("Cannot create socket for \(mac)")
 }
 
-socket.onStateChange {
-    let status = $1 ? "On\n" : "Off\n"
+func outputStatus(_ on: Bool) {
+    let status = on ? "On\n" : "Off\n"
     fputs(status, stdout)
     fflush(stdout)
+}
+
+socket.onStateChange {
+    outputStatus($1)
 }
 
 socket.onDiscovery() {
@@ -39,8 +43,7 @@ socket.onSubscription() { socket, _ in
         var line = readLine()
         while let cmd = line, !done {
             switch cmd.lowercased() {
-            case "q":
-                fallthrough
+            case "q": fallthrough
             case "quit":
                 done = true
                 continue
@@ -48,6 +51,10 @@ socket.onSubscription() { socket, _ in
                 socket.on = true
             case "off":
                 socket.on = false
+            case "p": fallthrough
+            case "ping":
+                let onOff = socket.getState()
+                outputStatus(onOff)
             default:
                 fputs("Unknown command '\(cmd)'", stderr)
                 fflush(stderr)
