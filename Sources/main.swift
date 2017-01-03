@@ -19,16 +19,20 @@ guard let socket = Orvibo(mac) else {
 }
 
 socket.onStateChange {
-    print($1 ? "On" : "Off")
+    let status = $1 ? "On\n" : "Off\n"
+    fputs(status, stdout)
+    fflush(stdout)
 }
 
 socket.onDiscovery() {
-    print("Discovered \(mac) at \($0.ip)")
+    fputs("Discovered \(mac) at \($0.ip)\n", stdout)
+    fflush(stdout)
     $0.subscribe()
 }
 
 socket.onSubscription() { socket, _ in
-    print("Subscribed, state = \(socket.state.rawValue)")
+    fputs("Subscribed, state = \(socket.state.rawValue)\n", stdout)
+    fflush(stdout)
     let mainQueue = DispatchQueue.main
     mainQueue.async {
         var done = false
@@ -45,7 +49,8 @@ socket.onSubscription() { socket, _ in
             case "off":
                 socket.on = false
             default:
-                print("Unknown command '\(cmd)'")
+                fputs("Unknown command '\(cmd)'", stderr)
+                fflush(stderr)
             }
             line = readLine()
         }
@@ -59,7 +64,8 @@ socket.onSubscription() { socket, _ in
 }
 
 socket.onUnsubscription() {
-    print("Unsubscribed from \($0).")
+    fputs("Unsubscribed from \($0).\n", stdout)
+    fflush(stdout)
 }
 
 socket.discover()
