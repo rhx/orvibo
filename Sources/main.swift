@@ -20,8 +20,9 @@ import COrvibo
 /// - Parameter rv: exit value (e.g. EXIT_SUCCESS)
 /// - Returns: never
 func usage(_ rv: Int32 = EXIT_FAILURE) -> Never {
-    print("Usage: \(CommandLine.arguments.first!) [-b port] [-u port] <mac>")
+    print("Usage: \(CommandLine.arguments.first!) [-b port] [-t seconds] [-u port] <mac>")
     print("Options:\t-b port\tbroadcast on the given UDP port")
+    print("        \t-t seconds\tconnection timeout in seconds")
     print("        \t-u port\tlisten at the given UDP port")
     exit(rv)
 }
@@ -38,13 +39,17 @@ func output(_ s: String, file: UnsafeMutablePointer<FILE> = stdout) {
 
 var broadcastPort: UInt16?
 var listenPort: UInt16?
+var timeout: Int?
 
-while let (opt, param) = get_opt("b:u:") {
+while let (opt, param) = get_opt("b:t:u:") {
     switch opt {
     case "b":
         guard param != nil, let p = UInt16(param!) else { usage() }
         broadcastPort = p
-    case "b":
+    case "t":
+        guard param != nil, let t = Int(param!) else { usage() }
+        timeout = t
+    case "u":
         guard param != nil, let p = UInt16(param!) else { usage() }
         listenPort = p
     case "?": fallthrough
@@ -85,6 +90,15 @@ socket.onSubscription() { socket, _ in
 
 socket.onUnsubscription() {
     output("Unsubscribed from \($0).")
+}
+
+if let t = timeout {
+    DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(t)) {
+        if socket.stage != .subscribed {
+            output("Connection timeout!", file: stderr)
+            socket.unsubscribeAndExit()
+        }
+    }
 }
 
 socket.discover()
