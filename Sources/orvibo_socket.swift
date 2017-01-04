@@ -3,7 +3,7 @@
 //  orvibo
 //
 //  Created by Rene Hexel on 3/1/17.
-//
+//  Copyright © 2017 Rene Hexel. All rights reserved.
 //
 import Foundation
 import COrvibo

@@ -1,3 +1,10 @@
+//
+//  main.swift
+//  orvibo
+//
+//  Created by Rene Hexel on 3/1/17.
+//  Copyright © 2017 Rene Hexel. All rights reserved.
+//
 import Foundation
 import Dispatch
 import COrvibo
@@ -8,24 +15,53 @@ import COrvibo
     import Darwin
 #endif
 
-guard CommandLine.arguments.count == 2 else {
-    print("Usage: \(CommandLine.arguments.first!) <mac>")
-    exit(EXIT_FAILURE)
+/// Print command usage and exit the program
+///
+/// - Parameter rv: exit value (e.g. EXIT_SUCCESS)
+/// - Returns: never
+func usage(_ rv: Int32 = EXIT_FAILURE) -> Never {
+    print("Usage: \(CommandLine.arguments.first!) [-b port] [-u port] <mac>")
+    print("Options:\t-b port\tbroadcast on the given UDP port")
+    print("        \t-u port\tlisten at the given UDP port")
+    exit(rv)
 }
+
+/// Output the given string
+///
+/// - Parameters:
+///   - s: the string to print / output
+///   - file: pointer to the output file (`stdout` if none is given)
+func output(_ s: String, file: UnsafeMutablePointer<FILE> = stdout) {
+    fputs(s, file)
+    fflush(file)
+}
+
+var broadcastPort: UInt16?
+var listenPort: UInt16?
+
+while let (opt, param) = get_opt("b:u:") {
+    switch opt {
+    case "b":
+        guard param != nil, let p = UInt16(param!) else { usage() }
+        broadcastPort = p
+    case "b":
+        guard param != nil, let p = UInt16(param!) else { usage() }
+        listenPort = p
+    case "?": fallthrough
+    default:
+        usage()
+    }
+}
+guard CommandLine.arguments.count == Int(optind) + 1 else { usage() }
 
 let mac = CommandLine.arguments.last!
 guard let socket = Orvibo(mac) else {
     fatalError("Cannot create socket for \(mac)")
 }
 
-func outputStatus(_ on: Bool) {
-    let status = on ? "On\n" : "Off\n"
-    fputs(status, stdout)
-    fflush(stdout)
-}
-
 socket.onStateChange {
-    outputStatus($1)
+    let status = $0.getStatus($1)
+    output(status)
 }
 
 socket.onDiscovery() {
@@ -37,36 +73,15 @@ socket.onDiscovery() {
 socket.onSubscription() { socket, _ in
     fputs("Subscribed, state = \(socket.state.rawValue)\n", stdout)
     fflush(stdout)
-    let mainQueue = DispatchQueue.main
-    mainQueue.async {
-        var done = false
+    DispatchQueue.main.async {
         var line = readLine()
-        while let cmd = line, !done {
-            switch cmd.lowercased() {
-            case "q": fallthrough
-            case "quit":
-                done = true
-                continue
-            case "on":
-                socket.on = true
-            case "off":
-                socket.on = false
-            case "p": fallthrough
-            case "ping":
-                let onOff = socket.getState()
-                outputStatus(onOff)
-            default:
-                fputs("Unknown command '\(cmd)'", stderr)
-                fflush(stderr)
-            }
+        while let cmd = line {
+            let (response, done) = socket.handle(command: cmd)
+            if let status = response { output(status) }
+            guard !done else { break }
             line = readLine()
         }
-        socket.unsubscribe()
-        mainQueue.asyncAfter(deadline: .now() + .milliseconds(100)) {
-            socket.destroy()
-            orvibo_stop()
-            exit(EXIT_SUCCESS)
-        }
+        socket.unsubscribeAndExit()
     }
 }
 
