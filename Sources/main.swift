@@ -26,13 +26,13 @@ func usage(_ rv: Int32 = EXIT_FAILURE) -> Never {
     exit(rv)
 }
 
-/// Output the given string
+/// Output the given string, adding '\n'
 ///
 /// - Parameters:
 ///   - s: the string to print / output
 ///   - file: pointer to the output file (`stdout` if none is given)
 func output(_ s: String, file: UnsafeMutablePointer<FILE> = stdout) {
-    fputs(s, file)
+    fputs("\(s)\n", file)
     fflush(file)
 }
 
@@ -65,14 +65,12 @@ socket.onStateChange {
 }
 
 socket.onDiscovery() {
-    fputs("Discovered \(mac) at \($0.ip)\n", stdout)
-    fflush(stdout)
+    output("Discovered \(mac) at \($0.ip)")
     $0.subscribe()
 }
 
 socket.onSubscription() { socket, _ in
-    fputs("Subscribed, state = \(socket.state.rawValue)\n", stdout)
-    fflush(stdout)
+    output("Subscribed, state = \(socket.state.rawValue)")
     DispatchQueue.main.async {
         var line = readLine()
         while let cmd = line {
@@ -86,8 +84,7 @@ socket.onSubscription() { socket, _ in
 }
 
 socket.onUnsubscription() {
-    fputs("Unsubscribed from \($0).\n", stdout)
-    fflush(stdout)
+    output("Unsubscribed from \($0).")
 }
 
 socket.discover()

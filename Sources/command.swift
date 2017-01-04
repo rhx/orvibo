@@ -31,7 +31,7 @@ public extension Orvibo {
         return (response: nil, done: false)
     }
 
-    /// Return the socket status as a line-terminated string
+    /// Return the socket status as a string
     ///
     /// - Parameter status: the status to output (defaults to calling `getState()`)
     /// - Returns: "On" if the power has been determined to be on, "Off" otherwise
@@ -39,7 +39,7 @@ public extension Orvibo {
         let onOffStatus: Bool
         if let s = status { onOffStatus = s }
         else { onOffStatus = getState() }
-        let onOff = onOffStatus ? "On\n" : "Off\n"
+        let onOff = onOffStatus ? "On" : "Off"
         return onOff
     }
 
