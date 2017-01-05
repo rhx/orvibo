@@ -23,8 +23,35 @@ This library uses the [Swift Package Manager](https://swift.org/package-manager/
 
 ## Usage
 
-Ensure that `/usr/local/bin` is in your path, then run
+Ensure that `/usr/local/bin` is in your path and that your smart plug is connected to your local wireless
+ LAN, then run
 
-	orvibo -m ac:cf:12:34:56:78
+	orvibo ac:cf:23:24:25:26
 
-(replace `ac:cf:12:34:56:78` with the MAC address of your smart plug.)
+(replace `ac:cf:23:24:25:26` with the actual MAC address of your smart plug.)
+
+You can now issue commands on standard input and will receive status updates on standard output.
+
+### Commands
+
+Valid commands are:
+
+	OFF	turn the plug off
+	ON	turn the plug on
+	P	"ping" the plug: get the current plug status ("On" or "Off")
+	Q	quit
+
+### Command line options
+
+Synopsis:	`orvibo [-b port] [-t seconds] [-u port] <Mac>`
+Options:
+
+	-b broadcastPort	the UDP port to broadcast status information on (default: none)
+	-t timeout			timeout when trying to connect to the socket (default: none)
+	-u listenPort		the UDP to listen on for commands (default: none, stdio only)
+
+#### Example
+
+Broadcast on UDP port `12345`, listen for commands on UDP port `54321`, and try to establish a connection to the smart plug within two seconds (otherwise exit):
+
+	orvibo -b 12345 -t 2 -u 54321 ac:cf:23:24:25:26
