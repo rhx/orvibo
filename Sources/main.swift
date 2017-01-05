@@ -18,6 +18,8 @@ import COrvibo
 var broadcast: UDPSocket?
 var broadcastPort: UInt16?
 var listenPort: UInt16?
+var listen: UDPSocket?
+var orvibo: Orvibo?
 var timeout: Int?
 
 /// Print command usage and exit the program
@@ -66,6 +68,29 @@ while let (opt, param) = get_opt("b:t:u:") {
     case "u":
         guard param != nil, let p = UInt16(param!) else { usage() }
         listenPort = p
+        do {
+            let background = DispatchQueue.global(qos: .userInteractive)
+            listen = try UDPSocket(bind: "0.0.0.0", port: p)
+            listen?.onRead(queue: background) {
+                guard let content = $0.0, content.count > 1,
+                    let endpoint = $0.1 else { return }
+                let lines = content.split(separator: 10, omittingEmptySubsequences: true)
+                guard !lines.isEmpty else { return }
+                for entry in lines {
+                    let nullTerminated = entry.map { CChar($0) } + [0]
+                    guard let cmd = nullTerminated.withUnsafeBufferPointer({ String(validatingUTF8: $0.baseAddress!) }) else { return }
+                    DispatchQueue.main.async {
+                        guard let (response, done) = orvibo?.handle(command: cmd) else { return }
+                        if let status = response { output(status) }
+                        if done { orvibo?.unsubscribeAndExit() }
+                    }
+                }
+            }
+        } catch SocketError.error(let errno) {
+            fatalError("Cannot create UDP listen socket for port \(p): \(String(cString: strerror(errno)))")
+        } catch {
+            fatalError("Unknown error trying to create UDP listen socket for port \(p): \(String(cString: strerror(errno)))")
+        }
     case "?": fallthrough
     default:
         usage()
@@ -74,7 +99,8 @@ while let (opt, param) = get_opt("b:t:u:") {
 guard CommandLine.arguments.count == Int(optind) + 1 else { usage() }
 
 let mac = CommandLine.arguments.last!
-guard let socket = Orvibo(mac) else {
+orvibo = Orvibo(mac)
+guard let socket = orvibo else {
     fatalError("Cannot create socket for \(mac)")
 }
 
@@ -90,18 +116,23 @@ socket.onDiscovery() {
 
 socket.onSubscription() { socket, _ in
     output("Subscribed, state = \(socket.state.rawValue)")
-    DispatchQueue.main.async {
+    let background = DispatchQueue.global(qos: .userInteractive)
+    background.async {
         var line = readLine()
         var finished = false
         while let cmd = line {
-            let (response, done) = socket.handle(command: cmd)
-            if let status = response { output(status) }
-            finished = done
+            DispatchQueue.main.sync {
+                let (response, done) = socket.handle(command: cmd)
+                if let status = response { output(status) }
+                finished = done
+            }
             guard !finished else { break }
             line = readLine()
         }
         if finished || broadcastPort == nil {
-            socket.unsubscribeAndExit()
+            DispatchQueue.main.async {
+                socket.unsubscribeAndExit()
+            }
         }
     }
 }

@@ -84,12 +84,12 @@ public extension UDPSocket {
     /// Create a UDP socket bound to a given port
     ///
     /// - Parameters:
-    ///   - source: IP address, "0.0.0.0" for any, or nil for broadcast
+    ///   - bind: source IP address, "0.0.0.0" for any, or nil for broadcast
     ///   - port: binding port in host byte order
     ///   - reuse: whether to allow reusing the port
     ///   - broadcast: whether this is a broadcast socket
     /// - Throws: errno if an error occurs
-    public init(source: String? = nil, port: UDPPort = 0, reuse: Bool = true, broadcast: Bool = true) throws {
+    public init(bind source: String? = nil, port: UDPPort = 0, reuse: Bool = true, broadcast: Bool = true) throws {
         var inaddr = in_addr()
         if let address = source {
             guard inet_aton(address, &inaddr) != 0 else {
