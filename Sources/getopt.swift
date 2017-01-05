@@ -1,6 +1,6 @@
 //
 //  getopt.swift
-//  gir2swift
+//  orvibo
 //
 //  Created by Rene Hexel on 22/03/2016.
 //  Copyright © 2016 Rene Hexel. All rights reserved.

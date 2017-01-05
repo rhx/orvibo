@@ -15,6 +15,11 @@ import COrvibo
     import Darwin
 #endif
 
+var broadcast: UDPSocket?
+var broadcastPort: UInt16?
+var listenPort: UInt16?
+var timeout: Int?
+
 /// Print command usage and exit the program
 ///
 /// - Parameter rv: exit value (e.g. EXIT_SUCCESS)
@@ -27,25 +32,34 @@ func usage(_ rv: Int32 = EXIT_FAILURE) -> Never {
     exit(rv)
 }
 
-/// Output the given string, adding '\n'
+/// Output the given string to UDP (if non-nil) and file, adding '\n'
 ///
 /// - Parameters:
 ///   - s: the string to print / output
 ///   - file: pointer to the output file (`stdout` if none is given)
 func output(_ s: String, file: UnsafeMutablePointer<FILE> = stdout) {
-    fputs("\(s)\n", file)
+    let message = "\(s)\n"
+    if let p = broadcastPort {
+        if !(broadcast?.send(message, port: p) ?? false) {
+            print("Cannot send message '\(s)' to port \(p): \(String(cString: strerror(errno)))")
+        }
+    }
+    fputs(message, file)
     fflush(file)
 }
-
-var broadcastPort: UInt16?
-var listenPort: UInt16?
-var timeout: Int?
 
 while let (opt, param) = get_opt("b:t:u:") {
     switch opt {
     case "b":
         guard param != nil, let p = UInt16(param!) else { usage() }
         broadcastPort = p
+        do {
+            broadcast = try UDPSocket(port: p)
+        } catch SocketError.error(let errno) {
+            fatalError("Cannot create UDP broadbast socket for port \(p): \(String(cString: strerror(errno)))")
+        } catch {
+            fatalError("Unknown error trying to create UDP broadbast socket for port \(p): \(String(cString: strerror(errno)))")
+        }
     case "t":
         guard param != nil, let t = Int(param!) else { usage() }
         timeout = t
@@ -78,13 +92,17 @@ socket.onSubscription() { socket, _ in
     output("Subscribed, state = \(socket.state.rawValue)")
     DispatchQueue.main.async {
         var line = readLine()
+        var finished = false
         while let cmd = line {
             let (response, done) = socket.handle(command: cmd)
             if let status = response { output(status) }
-            guard !done else { break }
+            finished = done
+            guard !finished else { break }
             line = readLine()
         }
-        socket.unsubscribeAndExit()
+        if finished || broadcastPort == nil {
+            socket.unsubscribeAndExit()
+        }
     }
 }
 
