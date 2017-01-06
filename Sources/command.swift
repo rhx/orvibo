@@ -28,7 +28,7 @@ public extension Orvibo {
         default:
             return (response: "Unknown command '\(command)'", done: false)
         }
-        return (response: nil, done: false)
+        return (response: command, done: false)
     }
 
     /// Return the socket status as a string
