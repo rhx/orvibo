@@ -49,15 +49,9 @@ public class Orvibo {
     /// Last known on/off status of the socket
     public var on: Bool {
         get { return state == ORVIBO_STATE_ON }
-        set {
-            let previousState = state
-            state = newValue ? ORVIBO_STATE_ON : ORVIBO_STATE_OFF
-            if state != previousState {
-                let setState = newValue ? orvibo_socket_on : orvibo_socket_off
-                _ = setState(ptr)
-            }
-        }
+        set { _ = setState(on: newValue) }
     }
+
     /// Get the status of the socket
     ///
     /// - Returns: `true` iff on
@@ -65,6 +59,17 @@ public class Orvibo {
     public func getState() -> Bool {
         state = orvibo_socket_state(ptr)
         return on
+    }
+
+    /// Set the state of the socket
+    ///
+    /// - Parameter on: `true` to turn on the socket, `false` to turn off
+    /// - Returns: `true` iff message was sent to socket
+    public func setState(on: Bool) -> Bool {
+        let setState = on ? orvibo_socket_on : orvibo_socket_off
+        guard setState(ptr) else { return false }
+        state = on ? ORVIBO_STATE_ON : ORVIBO_STATE_OFF
+        return true
     }
 
     /// Callback on socket discovery

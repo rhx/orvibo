@@ -18,9 +18,11 @@ public extension Orvibo {
         case "quit":
             return (response: nil, done: true)
         case "on":
-            on = true
+            guard setState(on: true) else { break }
+            return (response: command, done: false)
         case "off":
-            on = false
+            guard setState(on: false) else { break }
+            return (response: command, done: false)
         case "p": fallthrough
         case "ping":
             let onOff = getStatus()
@@ -28,7 +30,7 @@ public extension Orvibo {
         default:
             return (response: "Unknown command '\(command)'", done: false)
         }
-        return (response: command, done: false)
+        return (response: nil, done: false)
     }
 
     /// Return the socket status as a string
