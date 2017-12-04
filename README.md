@@ -18,8 +18,15 @@ You need to download, build, and install this library first:
 
 This library uses the [Swift Package Manager](https://swift.org/package-manager/).  To build and install use:
 
-	swift build  -Xcc -I/usr/local/include -Xlinker -L/usr/local/lib
-	sudo cp -p .build/debug/orvibo /usr/local/bin
+	swift build -c release -Xcc -I/usr/local/include -Xlinker -L/usr/local/lib
+	sudo cp -p .build/*/release/orvibo /usr/local/bin
+
+To build using Xcode, use
+
+```
+swift package generate-xcodeproj --xcconfig-overrides Package.xcconfig
+open orvibo.xcodeproj
+```
 
 ## Usage
 
