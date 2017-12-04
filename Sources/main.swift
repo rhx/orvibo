@@ -72,8 +72,7 @@ while let (opt, param) = get_opt("b:t:u:") {
             let background = DispatchQueue.global(qos: .userInteractive)
             listen = try UDPSocket(bind: "0.0.0.0", port: p)
             listen?.onRead(queue: background) {
-                guard let content = $0.0, content.count > 1,
-                    let endpoint = $0.1 else { return }
+                guard let content = $0.0, content.count > 1 else { return }
                 let lines = content.split(separator: 10, omittingEmptySubsequences: true)
                 guard !lines.isEmpty else { return }
                 for entry in lines {
