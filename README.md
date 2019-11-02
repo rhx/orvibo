@@ -3,10 +3,10 @@ A simple command line tool written in [Swift](https://swift.org/) for interactin
 
 ## Prerequisites
 
-This package uses the orvibo plug library at https://github.com/OllieDay/orvibo.
+This package uses the orvibo plug library at https://github.com/OllieDay/liborvibo.
 You need to download, build, and install this library first:
 
-	git clone https://github.com/OllieDay/orvibo.git liborvibo
+	git clone https://github.com/OllieDay/liborvibo.git liborvibo
 	mkdir build.liborvibo
 	cd build.liborvibo
 	cmake ../liborvibo

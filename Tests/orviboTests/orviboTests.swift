@@ -24,9 +24,9 @@ final class orviboTests: XCTestCase {
         process.waitUntilExit()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: data, encoding: .utf8)
+        let output = String(data: data, encoding: .utf8) ?? ""
 
-        XCTAssertEqual(output, "Hello, world!\n")
+        XCTAssertTrue(output.hasPrefix("Usage:"))
     }
 
     /// Returns path to the built products directory.
