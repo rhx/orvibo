@@ -3,7 +3,7 @@
 //  orvibo
 //
 //  Created by Rene Hexel on 28/12/16.
-//  Copyright © 2016 Rene Hexel. All rights reserved.
+//  Copyright © 2016, 2017 Rene Hexel. All rights reserved.
 //
 import Foundation
 import Dispatch
@@ -53,7 +53,6 @@ func htonl(_ addr: in_addr_t) -> in_addr_t {
     return bigEndian ? addr : addr.bigEndian
 }
 
-
 /// Convert IPv4 address from network to host byte order
 ///
 /// - Parameter addr: IPv4 address in network byte order
@@ -62,6 +61,21 @@ func ntohl(_ addr: in_addr_t) -> in_addr_t {
     return bigEndian ? addr : addr.byteSwapped
 }
 
+/// Convert Int64 from network to host byte order
+///
+/// - Parameter value: Value in network byte order
+/// - Returns: Value in host byte order
+func ntohll(_ value: Int64) -> Int64 {
+    return bigEndian ? value : value.byteSwapped
+}
+
+/// Convert UInt64 from network to host byte order
+///
+/// - Parameter value: Value in network byte order
+/// - Returns: Value in host byte order
+func ntohll(_ value: UInt64) -> UInt64 {
+    return bigEndian ? value : value.byteSwapped
+}
 
 extension UDPPort {
     /// Port number converted from host to  byte order
@@ -69,7 +83,6 @@ extension UDPPort {
     /// Port number converted from network to host byte order
     var hostByteOrder: UDPPort { return ntohs(self) }
 }
-
 
 /// Error thrown by UDPSocket methods
 ///
@@ -84,15 +97,15 @@ public extension UDPSocket {
     /// Create a UDP socket bound to a given port
     ///
     /// - Parameters:
-    ///   - bind: source IP address, "0.0.0.0" for any, or nil for broadcast
+    ///   - bind: binding IP address, "0.0.0.0" for any, or nil for transmitting broadcasts
     ///   - port: binding port in host byte order
     ///   - reuse: whether to allow reusing the port
     ///   - broadcast: whether this is a broadcast socket
     /// - Throws: errno if an error occurs
-    public init(bind source: String? = nil, port: UDPPort = 0, reuse: Bool = true, broadcast: Bool = true) throws {
+    init(bind addr: String? = nil, port: UDPPort = 0, reuse: Bool = true, broadcast: Bool = true) throws {
         var inaddr = in_addr()
-        if let address = source {
-            guard inet_aton(address, &inaddr) != 0 else {
+        if let srcaddr = addr {
+            guard inet_aton(srcaddr, &inaddr) != 0 else {
                 throw SocketError.error(errno) /// XXX: should try getaddrinfo()
             }
         } else {
@@ -103,7 +116,7 @@ public extension UDPSocket {
         guard s >= 0 else { throw SocketError.error(errno) }
         let sin_len = socklen_t(MemoryLayout<sockaddr_in>.size)
       #if os(Linux)
-        var address = sockaddr_in(sin_family: sa_family_t(AF_INET), sin_port: p, sin_addr: inaddr, sin_zero: (0,0,0,0,0,0,0,0))
+        var address = sockaddr_in(sin_family: sa_family_t(AF_INET), sin_port: p, sin_addr: inaddr, sin_zero: (0, 0, 0, 0, 0, 0, 0, 0))
       #else
         var address = sockaddr_in(sin_len: UInt8(sin_len), sin_family: sa_family_t(AF_INET), sin_port: p, sin_addr: inaddr, sin_zero: (0, 0, 0, 0, 0, 0, 0, 0))
         do {
@@ -119,7 +132,7 @@ public extension UDPSocket {
             var yes: CInt = 1
             setsockopt(s, CInt(SOL_SOCKET), CInt(SO_BROADCAST), &yes, socklen_t(MemoryLayout<CInt>.size))
         }
-        guard source != nil else { return }
+        guard addr != nil else { return }
         try withUnsafePointer(to: &address) {
             try $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
                 guard bind(s, UnsafePointer<sockaddr>($0), sin_len) == 0 else {
@@ -137,7 +150,7 @@ public extension UDPSocket {
     ///   - handler: callback handlern when a packet is received
     /// - Returns: active dispatch read source (call `cancel` do shutdown and close socket)
     @discardableResult
-    public func onRead(queue q: DispatchQueue = .main, datagramSize: Int = 4096, handler: @escaping (ArraySlice<UInt8>?, EndPoint?) -> Void) -> DispatchSourceRead {
+    func onRead(queue q: DispatchQueue = .main, datagramSize: Int = 4096, handler: @escaping (ArraySlice<UInt8>?, EndPoint?) -> Void) -> DispatchSourceRead {
         let readSource = DispatchSource.makeReadSource(fileDescriptor: s, queue: q)
         readSource.setCancelHandler {
             let s = CInt(readSource.handle)
@@ -147,7 +160,7 @@ public extension UDPSocket {
         readSource.setEventHandler {
             var sas = sockaddr_storage()
             var len = socklen_t(MemoryLayout<sockaddr_storage>.size)
-            var packet = Array<UInt8>(repeating: 0, count: datagramSize)
+            var packet = [UInt8](repeating: 0, count: datagramSize)
             let s = CInt(readSource.handle)
             let n = packet.withUnsafeMutableBytes { p in
                 withUnsafeMutablePointer(to: &sas) {
@@ -172,7 +185,7 @@ public extension UDPSocket {
     ///   - port: destination port (default: same port as when socket was set up)
     /// - Returns: `true` iff successful
     @discardableResult
-    public func send(data: Data, to destination: String? = nil, port p: UDPPort? = nil) -> Bool {
+    func send(data: Data, to destination: String? = nil, port p: UDPPort? = nil) -> Bool {
         var inaddr = in_addr()
         if let address = destination {
             guard inet_aton(address, &inaddr) != 0 else { return false }    /// XXX: should try getaddrinfo()
@@ -182,15 +195,16 @@ public extension UDPSocket {
         let port = p?.networkByteOrder ?? self.p
         let sin_len = socklen_t(MemoryLayout<sockaddr_in>.size)
         #if os(Linux)
-            var address = sockaddr_in(sin_family: sa_family_t(AF_INET), sin_port: port, sin_addr: inaddr, sin_zero: (0,0,0,0,0,0,0,0))
+            var address = sockaddr_in(sin_family: sa_family_t(AF_INET), sin_port: port, sin_addr: inaddr, sin_zero: (0, 0, 0, 0, 0, 0, 0, 0))
         #else
             var address = sockaddr_in(sin_len: UInt8(sin_len), sin_family: sa_family_t(AF_INET), sin_port: port, sin_addr: inaddr, sin_zero: (0, 0, 0, 0, 0, 0, 0, 0))
         #endif
-        let n = size_t(data.count)
-        return data.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) -> Bool in
-            withUnsafePointer(to: &address) {
+        return data.withUnsafeBytes {
+            guard let bytes = $0.baseAddress else { return false }
+            let n = $0.count
+            return withUnsafePointer(to: &address) {
                 $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { addr in
-                    sendto(s, UnsafeRawPointer(bytes), n, 0, addr, sin_len) == n
+                    sendto(s, bytes, n, 0, addr, sin_len) == n
                 }
             }
         }
@@ -205,12 +219,11 @@ public extension UDPSocket {
     ///   - port: destination port (default: same port as when socket was set up)
     /// - Returns: `true` iff successful
     @discardableResult
-    public func send(_ text: String, using encoding: String.Encoding = .utf8, to destination: String? = nil, port p: UDPPort? = nil) -> Bool {
+    func send(_ text: String, using encoding: String.Encoding = .utf8, to destination: String? = nil, port p: UDPPort? = nil) -> Bool {
         guard let d = text.data(using: encoding) else { return false }
         return send(data: d, to: destination, port: p)
     }
 }
-
 
 /// Return the endpoint of a UDP datagram
 ///

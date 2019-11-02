@@ -53,7 +53,7 @@ func output(_ s: String, file: UnsafeMutablePointer<FILE> = stdout) {
 while let (opt, param) = get_opt("b:t:u:") {
     switch opt {
     case "b":
-        guard param != nil, let p = UInt16(param!) else { usage() }
+        guard let p = param.flatMap(UInt16.init) else { usage() }
         broadcastPort = p
         do {
             broadcast = try UDPSocket(port: p)
@@ -63,16 +63,16 @@ while let (opt, param) = get_opt("b:t:u:") {
             fatalError("Unknown error trying to create UDP broadbast socket for port \(p): \(String(cString: strerror(errno)))")
         }
     case "t":
-        guard param != nil, let t = Int(param!) else { usage() }
+        guard let t = param.flatMap(Int.init) else { usage() }
         timeout = t
     case "u":
-        guard param != nil, let p = UInt16(param!) else { usage() }
+        guard let p = param.flatMap(UInt16.init) else { usage() }
         listenPort = p
         do {
             let background = DispatchQueue.global(qos: .userInteractive)
             listen = try UDPSocket(bind: "0.0.0.0", port: p)
-            listen?.onRead(queue: background) {
-                guard let content = $0.0, content.count > 1 else { return }
+            listen?.onRead(queue: background) { optionalContent, _ in
+                guard let content = optionalContent, content.count > 1 else { return }
                 let lines = content.split(separator: 10, omittingEmptySubsequences: true)
                 guard !lines.isEmpty else { return }
                 for entry in lines {

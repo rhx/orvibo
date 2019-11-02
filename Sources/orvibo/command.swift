@@ -3,7 +3,7 @@
 //  orvibo
 //
 //  Created by Rene Hexel on 5/1/17.
-//  Copyright © 2017 Rene Hexel. All rights reserved.
+//  Copyright © 2017, 2019 Rene Hexel. All rights reserved.
 //
 import Foundation
 
@@ -12,7 +12,7 @@ public extension Orvibo {
     ///
     /// - Parameter command: "q", "on", "off", or "p"
     /// - Returns: response string and whether to exit the program
-    public func handle(command: String) -> (response: String?, done: Bool) {
+    func handle(command: String) -> (response: String?, done: Bool) {
         switch command.lowercased() {
         case "q": fallthrough
         case "quit":
@@ -37,7 +37,7 @@ public extension Orvibo {
     ///
     /// - Parameter status: the status to output (defaults to calling `getState()`)
     /// - Returns: "On" if the power has been determined to be on, "Off" otherwise
-    public func getStatus(_ status: Bool? = nil) -> String {
+    func getStatus(_ status: Bool? = nil) -> String {
         let onOffStatus: Bool
         if let s = status { onOffStatus = s }
         else { onOffStatus = getState() }
@@ -46,7 +46,7 @@ public extension Orvibo {
     }
 
     /// Unsubscribe and exit after 100 ms
-    public func unsubscribeAndExit() {
+    func unsubscribeAndExit() {
         unsubscribe()
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
             self.destroy()

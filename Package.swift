@@ -1,8 +1,13 @@
+// swift-tools-version:5.0
+// The swift-tools-version declares the minimum version of Swift required to build this package.
+
 import PackageDescription
 
 let package = Package(
     name: "orvibo",
-    dependencies: [
-    	.Package(url: "https://github.com/rhx/COrvibo.git", majorVersion: 1),
+    targets: [
+        .systemLibrary(name: "COrvibo"),
+        .target(name: "orvibo", dependencies: ["COrvibo"]),
+        .testTarget(name: "orviboTests", dependencies: ["orvibo"]),
     ]
 )
